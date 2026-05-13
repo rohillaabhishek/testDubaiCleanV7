@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dubai Clean - Report Builder</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDFMake - The Best Fix for Selectable & Perfect PDF Layouts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#00a5d2',   /* Dubai Clean Blue */
+                        secondary: '#84c446', /* Dubai Clean Green */
+                        dark: '#1e293b',
+                        light: '#f8fafc',
+                        surface: '#ffffff'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        heading: ['Poppins', 'sans-serif']
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'card': '0 2px 10px rgba(0, 0, 0, 0.02)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #334155;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .form-input {
+            width: 100%;
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #00a5d2;
+            box-shadow: 0 0 0 3px rgba(0, 165, 210, 0.15);
+            background-color: #ffffff;
+        }
+        .form-label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 0.35rem;
+        }
+
+        .custom-checkbox {
+            appearance: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .custom-checkbox:checked {
+            background-color: #84c446;
+            border-color: #84c446;
+        }
+        .custom-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 6px;
+            height: 12px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.75rem;
+            background-color: #f8fafc;
+            transition: all 0.2s;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #00a5d2;
+            background-color: #f0f9ff;
+        }
+        .upload-area img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 10;
+        }
+
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-in { animation: slideInUp 0.4s ease forwards; }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            background: white;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 9999;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast-success { border-left: 4px solid #84c446; }
+        .toast-error { border-left: 4px solid #ef4444; }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #00a5d2;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="text-slate-700 flex flex-col min-h-screen">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/80 z-[9999] hidden flex-col items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="spinner mb-4"></div>
+        <h3 class="text-white font-heading font-semibold text-lg">Generating Selectable PDF...</h3>
+        <p class="text-slate-300 text-sm mt-1">Please wait, building native document structure.</p>
+    </div>
+
+    <!-- Confirmation Modal (Custom alert replacement) -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/50 z-[10000] hidden flex-col items-center justify-center backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 p-6 animate-in">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Clear Form?</h3>
+            <p class="text-slate-600 text-sm mb-6">Are you sure you want to clear the form? All entries and photos will be deleted. This action cannot be undone.</p>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">Cancel</button>
+                <button onclick="executeClearForm()" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm">Clear Form</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sticky Navbar -->
+    <header class="glass-header sticky top-0 z-50 px-3 md:px-8 py-3 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2 sm:gap-3">
+            <img src="./static/logo.svg" alt="Dubai Clean Logo" class="h-8 sm:h-10 w-auto" onerror="this.style.display='none'">
+            <div class="hidden md:block h-6 w-px bg-slate-200 mx-2"></div>
+            <span class="hidden md:block font-medium text-slate-500">Report Builder</span>
+        </div>
+
+        <div class="flex items-center gap-2 md:gap-4">
+            <button onclick="clearForm()" class="px-3 py-2 text-xs sm:text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-1.5 sm:gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <span class="hidden sm:inline">Clear Form</span>
+                <span class="sm:hidden">Clear</span>
+            </button>
+            <button onclick="generatePDF()" class="px-3 py-2 text-xs sm:text-sm font-medium text-white bg-primary rounded-lg hover:bg-[#008db5] transition-colors shadow-sm shadow-primary/30 flex items-center gap-1.5 sm:gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <span class="hidden sm:inline">Generate PDF</span>
+                <span class="sm:hidden">PDF</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        
+        <!-- Overview Section -->
+        <section class="bg-surface rounded-xl shadow-card p-6 animate-in" style="animation-delay: 0.1s;">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="font-heading font-semibold text-2xl text-slate-800" id="display-report-name">Customer Name</h1>
+                    <p class="text-sm text-slate-500 mt-1"><span class="font-medium text-slate-700">Duct + Coil Cleaning (Final Delivery)</span></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cover Page Details Form -->
+        <section class="bg-surface rounded-xl shadow-card p-6 animate-in" style="animation-delay: 0.2s;">
+            <h2 class="font-heading font-semibold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100">Customer & Site Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                    <label class="form-label">Customer Name *</label>
+                    <input type="text" id="customer-name" class="form-input" placeholder="e.g. John Doe" oninput="autoSave()">
+                </div>
+                <div>
+                    <label class="form-label">Date of Service *</label>
+                    <input type="date" id="service-date" class="form-input" onchange="autoSave()">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="form-label">Site Address *</label>
+                    <input type="text" id="site-address" class="form-input" placeholder="Full unit number, building, area" oninput="autoSave()">
+                </div>
+                <div>
+                    <label class="form-label">Contact Number</label>
+                    <input type="tel" id="contact-number" class="form-input" placeholder="+971 50 123 4567" oninput="autoSave()">
+                </div>
+                <div>
+                    <label class="form-label">Inspector / Team Lead</label>
+                    <input type="text" id="inspector-name" class="form-input" placeholder="Name of inspector" oninput="autoSave()">
+                </div>
+            </div>
+        </section>
+
+        <!-- AC System Condition -->
+        <section class="bg-surface rounded-xl shadow-card p-6 animate-in" style="animation-delay: 0.3s;">
+            <h2 class="font-heading font-semibold text-lg text-slate-800 mb-4 pb-2 border-b border-slate-100">AC Duct System — Condition</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-500 text-sm">
+                            <th class="p-3 font-medium rounded-tl-lg">Component</th>
+                            <th class="p-3 font-medium rounded-tr-lg">Condition</th>
+                        </tr>
+                    </thead>
+                    <tbody id="condition-table-body" class="divide-y divide-slate-100">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Service Checklist -->
+        <section class="bg-surface rounded-xl shadow-card p-6 animate-in" style="animation-delay: 0.4s;">
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                <h2 class="font-heading font-semibold text-lg text-slate-800">AC Duct + Coil Cleaning Report — Items Done</h2>
+                <button onclick="addCustomChecklistItem()" class="text-sm text-primary font-medium hover:text-[#008db5] flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Item
+                </button>
+            </div>
+            <div class="space-y-1" id="checklist-container">
+                <!-- Checklist items populated by JS -->
+            </div>
+        </section>
+
+        <!-- Before / After Photos -->
+        <section class="bg-surface rounded-xl shadow-card p-6 animate-in" style="animation-delay: 0.5s;">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 pb-2 border-b border-slate-100 gap-3">
+                <div>
+                    <h2 class="font-heading font-semibold text-lg text-slate-800">Before / After Photo Pairs</h2>
+                    <p class="text-xs text-slate-500 mt-1">Upload one before-photo and one after-photo per pair. Each photo is auto-rotated, smart-cropped to landscape 4:3, and resized to 1200px on the long edge — pairs end up matched in the PDF grid.</p>
+                </div>
+                <button onclick="addPhotoPair()" class="px-4 py-2 text-sm font-medium text-white bg-secondary rounded-lg hover:bg-[#74ae38] transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Photo Pair
+                </button>
+            </div>
+
+            <div id="photos-container" class="space-y-6">
+                <!-- Photo pairs populated by JS -->
+            </div>
+            
+            <div id="empty-photos-state" class="text-center py-10 bg-slate-50 rounded-lg border-2 border-dashed border-slate-200 mt-4">
+                <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <p class="text-slate-500 font-medium">No photos added yet.</p>
+                <p class="text-sm text-slate-400 mt-1">Click the button above to add comparison photos.</p>
+            </div>
+
+            <div class="mt-6 flex justify-center" id="bottom-add-photo-container">
+                <button onclick="addPhotoPair()" class="px-6 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Add Another Pair
+                </button>
+            </div>
+        </section>
+        
+        <div class="h-12"></div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // --- SAFE NUMBER & SVG SANITIZATION HELPERS ---
+        function safeNumber(value, fallback = 0) {
+            const num = Number(value);
+            return isNaN(num) ? fallback : num;
+        }
+
+        function sanitizeSVG(svgString) {
+            if (!svgString || typeof svgString !== 'string') {
+                return '<svg width="10" height="10"><path d="M0 0"/></svg>';
+            }
+            let sanitized = svgString
+                .replace(/NaN/g, '0')
+                .replace(/undefined/g, '0')
+                .replace(/null/g, '0');
+            if (sanitized.includes('d="0"')) {
+                sanitized = sanitized.replace(/d="0"/g, 'd="M0 0"');
+            }
+            return sanitized;
+        }
+
+        // Helper to validate canvas coordinates reliably
+        function safePoint(x, y) {
+            return { x: safeNumber(x), y: safeNumber(y) };
+        }
+
+        const DEFAULT_CHECKLIST = [
+            "Cleaning of the removable filter",
+            "Cleaning and plough the fix filter",
+            "Cleaning of the duct with special Roto brush machine to clear from dust and others",
+            "Using of special sanitizer to avoid any bacteria, grim, fungus and dust made to avoid production inside the duct",
+            "Cleaning of all diffuser and linear of the AC",
+            "Cleaning of coil and blower and drain tray",
+            "Cleaning & removing unnecessary things that cause the AC from creating bad smell",
+            "All Ducts of AC units are cleaned and sanitized"
+        ];
+
+        const CONDITIONS_LIST = [
+            { key: 'filter', label: 'Filter' },
+            { key: 'duct', label: 'Duct' },
+            { key: 'grills', label: 'Grills' },
+            { key: 'blower', label: 'Blower' },
+            { key: 'draintray', label: 'Draintray Cleaning' },
+            { key: 'coil', label: 'Coil' }
+        ];
+
+        const CONDITION_OPTIONS = ['Clean', 'Dirty', 'Replaced', 'N/A'];
+
+        let state = {
+            customerName: '',
+            date: new Date().toISOString().split('T')[0],
+            address: '',
+            contact: '',
+            inspector: '',
+            conditions: {
+                filter: 'Clean', duct: 'Clean', grills: 'Clean', 
+                blower: 'Clean', draintray: 'Clean', coil: 'Clean'
+            },
+            checklist: DEFAULT_CHECKLIST.map((text, index) => ({ id: index + 1, text, done: true })),
+            photos: []
+        };
+
+        window.onload = () => {
+            loadDraft();
+            renderAll();
+        };
+
+        function renderAll() {
+            document.getElementById('customer-name').value = state.customerName;
+            document.getElementById('display-report-name').innerText = state.customerName || 'Customer Name';
+            document.getElementById('service-date').value = state.date;
+            document.getElementById('site-address').value = state.address;
+            document.getElementById('contact-number').value = state.contact;
+            document.getElementById('inspector-name').value = state.inspector;
+
+            renderConditionsTable();
+            renderChecklist();
+            renderPhotos();
+        }
+
+        function renderConditionsTable() {
+            const tbody = document.getElementById('condition-table-body');
+            tbody.innerHTML = '';
+            
+            CONDITIONS_LIST.forEach(comp => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors';
+                
+                const optHtml = CONDITION_OPTIONS.map(opt => 
+                    `<option value="${opt}" ${state.conditions[comp.key] === opt ? 'selected' : ''}>${opt}</option>`
+                ).join('');
+
+                tr.innerHTML = `
+                    <td class="p-3 border-t border-slate-100 font-medium text-slate-700">${comp.label}</td>
+                    <td class="p-3 border-t border-slate-100">
+                        <select onchange="updateCondition('${comp.key}', this.value)" class="form-input py-1.5 w-full max-w-[200px] cursor-pointer">
+                            ${optHtml}
+                        </select>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderChecklist() {
+            const container = document.getElementById('checklist-container');
+            container.innerHTML = '';
+
+            state.checklist.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'flex items-start gap-3 p-2 hover:bg-slate-50 rounded-lg group transition-colors';
+                
+                div.innerHTML = `
+                    <div class="flex-shrink-0 mt-1">
+                        <input type="checkbox" class="custom-checkbox" ${item.done ? 'checked' : ''} onchange="toggleChecklistItem(${item.id}, this.checked)">
+                    </div>
+                    <div class="flex-grow min-w-0 pt-0.5">
+                        <span contenteditable="true" onblur="updateChecklistItem(${item.id}, this.innerText)" class="outline-none focus:ring-0 text-sm text-slate-700 leading-relaxed break-words whitespace-normal inline ${item.done ? '' : 'text-slate-400 line-through'}">${item.text}</span>
+                    </div>
+                    <button onclick="removeChecklistItem(${item.id})" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 flex-shrink-0" title="Remove Item">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderPhotos() {
+            const container = document.getElementById('photos-container');
+            const emptyState = document.getElementById('empty-photos-state');
+            const bottomButton = document.getElementById('bottom-add-photo-container');
+            
+            container.innerHTML = '';
+            
+            if (state.photos.length === 0) {
+                emptyState.style.display = 'block';
+                bottomButton.style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                bottomButton.style.display = 'flex';
+                
+                state.photos.forEach((pair, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'bg-white p-5 rounded-xl border border-slate-200 relative animate-in shadow-sm';
+                    
+                    div.innerHTML = `
+                        <div class="absolute top-4 right-4 z-20">
+                            <button onclick="removePhotoPair(${pair.id})" class="bg-red-50 text-red-500 p-1.5 rounded-md hover:bg-red-100 transition-colors" title="Delete Pair">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                        <h3 class="text-sm font-semibold text-primary mb-4 uppercase tracking-wider">Pair #${index + 1}</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                            <div>
+                                <label class="form-label">Component</label>
+                                <input type="text" class="form-input" placeholder="e.g. FILTER" value="${pair.component || ''}" onchange="updatePhotoData(${pair.id}, 'component', this.value)">
+                            </div>
+                            <div>
+                                <label class="form-label">Caption (Optional)</label>
+                                <input type="text" class="form-input" placeholder="e.g. Living room" value="${pair.caption || ''}" onchange="updatePhotoData(${pair.id}, 'caption', this.value)">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1.5 block">Before</label>
+                                <div class="upload-area ${pair.before ? 'has-image' : ''}" onclick="triggerFileInput('file-before-${pair.id}')">
+                                    ${pair.before ? 
+                                        `<img src="${pair.before}" alt="Before">` : 
+                                        `<svg class="w-8 h-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                         <span class="text-sm font-medium text-slate-500">Upload Before</span>`
+                                    }
+                                </div>
+                                <input type="file" id="file-before-${pair.id}" class="hidden" accept="image/*" onchange="handleImageUpload(event, ${pair.id}, 'before')">
+                            </div>
+                            
+                            <div>
+                                <label class="text-xs font-semibold text-slate-500 uppercase mb-1.5 block">After</label>
+                                <div class="upload-area ${pair.after ? 'has-image' : ''}" onclick="triggerFileInput('file-after-${pair.id}')">
+                                    ${pair.after ? 
+                                        `<img src="${pair.after}" alt="After">` : 
+                                        `<svg class="w-8 h-8 text-slate-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                         <span class="text-sm font-medium text-slate-500">Upload After</span>`
+                                    }
+                                </div>
+                                <input type="file" id="file-after-${pair.id}" class="hidden" accept="image/*" onchange="handleImageUpload(event, ${pair.id}, 'after')">
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        // STATE HANDLERS
+        function updateCondition(key, value) { state.conditions[key] = value; autoSave(); }
+        function toggleChecklistItem(id, isDone) {
+            const item = state.checklist.find(i => i.id === id);
+            if(item) item.done = isDone;
+            renderChecklist(); autoSave();
+        }
+        function updateChecklistItem(id, newText) {
+            const item = state.checklist.find(i => i.id === id);
+            if(item) item.text = newText; autoSave();
+        }
+        function addCustomChecklistItem() {
+            const newId = state.checklist.length > 0 ? Math.max(...state.checklist.map(i => i.id)) + 1 : 1;
+            state.checklist.push({ id: newId, text: 'New Checklist Item', done: true });
+            renderChecklist(); autoSave();
+        }
+        function removeChecklistItem(id) {
+            state.checklist = state.checklist.filter(i => i.id !== id);
+            renderChecklist(); autoSave(); showToast('Item removed', 'success');
+        }
+        function addPhotoPair() {
+            const newId = Date.now();
+            state.photos.push({ id: newId, before: null, after: null, component: '', caption: '' });
+            renderPhotos(); autoSave();
+        }
+        function removePhotoPair(id) {
+            state.photos = state.photos.filter(p => p.id !== id);
+            renderPhotos(); autoSave(); showToast('Photo pair removed', 'success');
+        }
+        function updatePhotoData(id, field, value) {
+            const pair = state.photos.find(p => p.id === id);
+            if (pair) { pair[field] = value; autoSave(); }
+        }
+        function triggerFileInput(id) { document.getElementById(id).click(); }
+
+        function handleImageUpload(event, pairId, type) {
+            const file = event.target.files[0];
+            if (!file) return;
+            processImage(file, (base64) => {
+                const pair = state.photos.find(p => p.id === pairId);
+                if (pair) {
+                    pair[type] = base64;
+                    renderPhotos();
+                    autoSave();
+                }
+            });
+        }
+
+        // IMAGE PROCESSING (Ensures uniform data URL format for PDFMake)
+        function processImage(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const targetWidth = safeNumber(1200, 1200);
+                    const targetHeight = safeNumber(900, 900);
+                    canvas.width = targetWidth; canvas.height = targetHeight;
+
+                    let srcX = 0, srcY = 0, srcWidth = safeNumber(img.width), srcHeight = safeNumber(img.height);
+                    
+                    // Prevent NaN from division by zero or invalid dimension
+                    const imgAspect = srcWidth / (srcHeight || 1); 
+                    const targetAspect = targetWidth / targetHeight;
+
+                    if (imgAspect > targetAspect) {
+                        srcWidth = safeNumber(img.height * targetAspect);
+                        srcX = safeNumber((img.width - srcWidth) / 2);
+                    } else {
+                        srcHeight = safeNumber(img.width / targetAspect);
+                        srcY = safeNumber((img.height - srcHeight) / 2);
+                    }
+
+                    // Strict number casting before drawing
+                    ctx.drawImage(img, safeNumber(srcX), safeNumber(srcY), safeNumber(srcWidth), safeNumber(srcHeight), 0, 0, targetWidth, targetHeight);
+                    // Export as base64 standard format required by PDFMake
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    callback(dataUrl);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function gatherFormData() {
+            state.customerName = document.getElementById('customer-name').value;
+            document.getElementById('display-report-name').innerText = state.customerName || 'Customer Name';
+            state.date = document.getElementById('service-date').value;
+            state.address = document.getElementById('site-address').value;
+            state.contact = document.getElementById('contact-number').value;
+            state.inspector = document.getElementById('inspector-name').value;
+        }
+
+        function autoSave() {
+            gatherFormData();
+            try { localStorage.setItem('dubaiCleanDraft', JSON.stringify(state)); } 
+            catch (e) { console.warn('LocalStorage quota exceeded.'); }
+        }
+
+        function clearForm() {
+            // Replaced alert/confirm with custom modal to adhere to rules
+            document.getElementById('confirm-modal').classList.remove('hidden');
+            document.getElementById('confirm-modal').classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            document.getElementById('confirm-modal').classList.remove('flex');
+        }
+
+        function executeClearForm() {
+            closeConfirmModal();
+            state = {
+                customerName: '', date: new Date().toISOString().split('T')[0],
+                address: '', contact: '', inspector: '',
+                conditions: { filter: 'Clean', duct: 'Clean', grills: 'Clean', blower: 'Clean', draintray: 'Clean', coil: 'Clean' },
+                checklist: DEFAULT_CHECKLIST.map((text, index) => ({ id: index + 1, text, done: true })),
+                photos: [] 
+            };
+            renderAll(); autoSave(); showToast('Form cleared successfully', 'success');
+        }
+
+        function loadDraft() {
+            const saved = localStorage.getItem('dubaiCleanDraft');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    state = { ...state, ...parsed };
+                } catch(e) {}
+            }
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const icon = type === 'success' 
+                ? `<svg class="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`
+                : `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+
+            toast.innerHTML = `${icon}<span class="text-sm font-medium text-slate-700">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Helper to robustly fetch images from local paths, bypassing file:// CORS where possible
+        async function safeGetImageBase64(paths) {
+            for (const path of paths) {
+                try {
+                    // Try fetch first (Works best on http/https servers like VSCode Live Server)
+                    const res = await fetch(path);
+                    if (res.ok) {
+                        // Return raw SVG string if it's an SVG file, otherwise process as raster blob
+                        if (path.toLowerCase().endsWith('.svg')) {
+                            return await res.text();
+                        }
+                        const blob = await res.blob();
+                        return await new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+                    }
+                } catch (e) {
+                    // If fetch fails (e.g., standard file:// protocol execution) attempt Canvas Image load
+                    try {
+                        const dataUrl = await new Promise((resolve, reject) => {
+                            const img = new Image();
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                canvas.width = img.width;
+                                canvas.height = img.height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0);
+                                try { resolve(canvas.toDataURL('image/png')); } 
+                                catch (err) { reject(err); } // Catches strict tainted canvas exceptions
+                            };
+                            img.onerror = reject;
+                            img.src = path;
+                        });
+                        if (dataUrl) return dataUrl;
+                    } catch (err) {
+                        // Continue to search the next path variant
+                    }
+                }
+            }
+            return null; // Return null if images are entirely blocked or missing
+        }
+
+        async function generatePDF() {
+            gatherFormData();
+            if(!state.customerName || !state.date) {
+                showToast('Please fill Customer Name and Date', 'error');
+                return;
+            }
+
+            // Show Loading Screen
+            const loader = document.getElementById('loading-overlay');
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+            
+            // Allow DOM to update and render loader
+            await new Promise(r => setTimeout(r, 50));
+
+            try {
+                // Ensure PDFMake is loaded
+                if (typeof pdfMake === 'undefined') {
+                    throw new Error("PDFMake library failed to load.");
+                }
+
+                // Attempt to load images by scanning typical folder structures (prioritizing SVG logo)
+                const logoBase64 = await safeGetImageBase64(['./static/logo.svg', 'static/logo.svg', 'logo.svg', '../static/logo.svg', 'static/logo.png']);
+                const headerBase64 = await safeGetImageBase64(['static/header.png', './static/header.png', 'header.png', '../static/header.png']);
+                const footerBase64 = await safeGetImageBase64(['static/footer.png', './static/footer.png', 'footer.png', '../static/footer.png']);
+
+                if (!headerBase64 || !footerBase64) {
+                    console.warn("Could not load header.png or footer.png. If running directly from your desktop, you may need to use a local web server (like VSCode Live Server). Falling back to geometric design seamlessly.");
+                }
+
+                // Construct Document Definition
+                const docDef = buildDocDefinition(logoBase64, footerBase64, headerBase64);
+                const filename = `DubaiClean_Report_${state.customerName.replace(/[^a-z0-9]/gi, '_') || 'Draft'}_${state.date}.pdf`;
+
+                // Generate and Trigger Download
+                pdfMake.createPdf(docDef).download(filename);
+                showToast('PDF Downloaded successfully!', 'success');
+                
+            } catch (error) {
+                console.error("PDF Generation Error:", error);
+                showToast('Error generating PDF.', 'error');
+            } finally {
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+            }
+        }
+
+        function buildDocDefinition(logoBase64 = null, footerBase64 = null, headerBase64 = null) {
+            const themeBlue = "#00a5d2";
+            const themeGreen = "#84c446";
+            const textDark = "#1e293b";
+            const textMuted = "#64748b";
+            const borderLight = "#cbd5e1";
+
+            // Flawless Vector Star Ratings (Integer-based paths to prevent NaN parsing errors in pdfmake)
+            const rawStarSVG = `<svg width="75" height="14" viewBox="0 0 95 18" xmlns="http://www.w3.org/2000/svg">
+                <path fill="#f59e0b" d="M9,0 L12,6 L18,6 L13,10 L15,16 L9,12 L3,16 L5,10 L0,6 L6,6 Z"/>
+                <path fill="#f59e0b" d="M28,0 L31,6 L37,6 L32,10 L34,16 L28,12 L22,16 L24,10 L19,6 L25,6 Z"/>
+                <path fill="#f59e0b" d="M47,0 L50,6 L56,6 L51,10 L53,16 L47,12 L41,16 L43,10 L38,6 L44,6 Z"/>
+                <path fill="#f59e0b" d="M66,0 L69,6 L75,6 L70,10 L72,16 L66,12 L60,16 L62,10 L57,6 L63,6 Z"/>
+                <path fill="#f59e0b" d="M85,0 L88,6 L94,6 L89,10 L91,16 L85,12 L79,16 L81,10 L76,6 L82,6 Z"/>
+            </svg>`;
+
+            const rawIsoSVG = `<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="50" cy="50" r="47" fill="none" stroke="#124a8c" stroke-width="2.5"/>
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#124a8c" stroke-width="1.2"/>
+                <circle cx="50" cy="50" r="28" fill="#124a8c"/>
+                <circle cx="50" cy="50" r="30" fill="none" stroke="#124a8c" stroke-width="1.2"/>
+                
+                <!-- Manually plotted text guarantees perfect curved layout in PDFMake -->
+                <g fill="#124a8c" font-family="sans-serif" font-size="12" font-weight="900" text-anchor="middle">
+                    <text transform="translate(22.4, 26.9) rotate(-50)" dy="4.5">C</text>
+                    <text transform="translate(28.1, 21.5) rotate(-37.5)" dy="4.5">E</text>
+                    <text transform="translate(34.8, 17.4) rotate(-25)" dy="4.5">R</text>
+                    <text transform="translate(42.2, 14.9) rotate(-12.5)" dy="4.5">T</text>
+                    <text transform="translate(50.0, 14.0) rotate(0)" dy="4.5">I</text>
+                    <text transform="translate(57.8, 14.9) rotate(12.5)" dy="4.5">F</text>
+                    <text transform="translate(65.2, 17.4) rotate(25)" dy="4.5">I</text>
+                    <text transform="translate(71.9, 21.5) rotate(37.5)" dy="4.5">E</text>
+                    <text transform="translate(77.6, 26.9) rotate(50)" dy="4.5">D</text>
+
+                    <text transform="translate(24.6, 75.4) rotate(45)" dy="4.5">C</text>
+                    <text transform="translate(32.0, 81.2) rotate(30)" dy="4.5">O</text>
+                    <text transform="translate(40.7, 84.8) rotate(15)" dy="4.5">M</text>
+                    <text transform="translate(50.0, 86.0) rotate(0)" dy="4.5">P</text>
+                    <text transform="translate(59.3, 84.8) rotate(-15)" dy="4.5">A</text>
+                    <text transform="translate(68.0, 81.2) rotate(-30)" dy="4.5">N</text>
+                    <text transform="translate(75.4, 75.4) rotate(-45)" dy="4.5">Y</text>
+                </g>
+
+                <text x="50" y="47" fill="white" font-family="sans-serif" font-size="22" font-weight="900" text-anchor="middle">ISO</text>
+                <text x="50" y="61" fill="white" font-family="sans-serif" font-size="9" font-weight="bold" text-anchor="middle" letter-spacing="0.2">9001:2015</text>
+            </svg>`;
+            
+            // Clean dynamic/raw SVG strings through the robust validator first
+            const starSVG = sanitizeSVG(rawStarSVG);
+            const isoBadgeSVG = sanitizeSVG(rawIsoSVG);
+
+            // Premium Table Spacing Profile
+            const premiumLayout = {
+                hLineWidth: () => 1,
+                vLineWidth: () => 1,
+                hLineColor: () => borderLight,
+                vLineColor: () => borderLight,
+                paddingLeft: () => 6,
+                paddingRight: () => 6,
+                paddingTop: () => 2,
+                paddingBottom: () => 2
+            };
+
+            const docContent = [];
+
+            // Margin spacer for absolute header background (Adjusted to clear tighter header)
+            docContent.push({ text: '', margin: [0, 85, 0, 0] });
+
+            // Redesigned ISO & Reviews Badge (Centered)
+            docContent.push({
+                columns: [
+                    { width: '*', text: '' }, // Left flexible spacer
+                    {
+                        width: 'auto',
+                        table: {
+                            widths: ['auto', 'auto', 'auto', 'auto', 'auto'], // Tightly pack contents
+                            body: [[
+                                { 
+                                    svg: isoBadgeSVG, width: 40, margin: [35, 5, 10, 5], alignment: 'center'
+                                },
+                                { text: '|', color: borderLight, fontSize: 24, margin: [0, 10, 0, 0], alignment: 'center' },
+                                {
+                                    stack: [
+                                        { svg: starSVG, width: 70, alignment: 'center', margin: [0, 10, 0, 5] },
+                                        { text: '4.9 / 5 · 2,028 Google reviews', bold: true, color: textDark, fontSize: 9, alignment: 'center' }
+                                    ],
+                                    margin: [10, 0, 10, 0]
+                                },
+                                { text: '|', color: borderLight, fontSize: 24, margin: [0, 10, 0, 0], alignment: 'center' },
+                                { 
+                                    text: '12+ years serving Dubai', bold: true, color: textDark, fontSize: 9, margin: [10, 20, 15, 0], alignment: 'center'
+                                }
+                            ]]
+                        },
+                        layout: {
+                            hLineWidth: (i) => (i === 0 || i === 1) ? 1 : 0,
+                            vLineWidth: () => 0, // Removed left and right borders
+                            hLineColor: () => borderLight,
+                            vLineColor: () => borderLight,
+                            fillColor: () => '#f8fafc',
+                        }
+                    },
+                    { width: '*', text: '' } // Right flexible spacer
+                ],
+                margin: [0, 0, 0, 10]
+            });
+
+            // Intro
+            docContent.push({ text: 'AC Duct + Coil Cleaning Report', style: 'mainTitle', margin: [0, 0, 0, 10] });
+            docContent.push({
+                table: {
+                    widths: ['*'],
+                    body: [[
+                        {
+                            text: 'Thank you for choosing Dubai Clean. Your AC system has been thoroughly inspected, deep-cleaned, and sanitised by our certified technicians using premium-grade equipment and HVAC-safe sanitisers. This report documents the work completed and the condition of each component before and after service — a clear record of the value delivered, and a small thank-you for the trust you\'ve placed in our team.',
+                            style: 'paragraph', margin: [8, 8, 8, 8], alignment: 'justify'
+                        }
+                    ]]
+                },
+                layout: {
+                    hLineWidth: () => 0,
+                    vLineWidth: () => 0,
+                    fillColor: () => '#eef2ff' // Light blue background mimicking image
+                },
+                margin: [0, 0, 0, 15]
+            });
+
+            // Customer Info Table
+            docContent.push({
+                table: {
+                    widths: ['20%', '30%', '20%', '30%'],
+                    body: [
+                        [
+                            { text: 'NAME', style: 'th' }, { text: state.customerName, style: 'td' },
+                            { text: 'DATE', style: 'th' }, { text: state.date, style: 'td' }
+                        ],
+                        [
+                            { text: 'ADDRESS', style: 'th' }, { text: state.address, colSpan: 3, style: 'td' }, {}, {}
+                        ],
+                        [
+                            { text: 'CONTACT NO', style: 'th' }, { text: state.contact || '—', style: 'td' },
+                            { text: 'INSPECTOR', style: 'th' }, { text: state.inspector || '—', style: 'td' }
+                        ]
+                    ]
+                },
+                layout: premiumLayout,
+                margin: [0, 0, 0, 15]
+            });
+
+            // Condition Table with Dynamic Coloring
+            docContent.push({
+                table: {
+                    widths: ['*'],
+                    body: [[
+                        { text: 'AC DUCT SYSTEM — CONDITION', fillColor: themeBlue, color: 'white', bold: true, fontSize: 11, margin: [10, 6, 10, 6], characterSpacing: 0.5 }
+                    ]]
+                },
+                layout: 'noBorders',
+                margin: [0, 0, 0, 0] // Connect header closely to table
+            });
+
+            docContent.push({
+                table: {
+                    widths: ['50%', '50%'],
+                    body: [
+                        [ { text: 'COMPONENT', style: 'th' }, { text: 'CONDITION', style: 'th' } ],
+                        ...CONDITIONS_LIST.map(comp => {
+                            const isClean = state.conditions[comp.key] === 'Clean';
+                            return [
+                                { text: comp.label, style: 'td' },
+                                { 
+                                    text: state.conditions[comp.key], 
+                                    style: 'td', 
+                                    bold: true,
+                                    color: textDark // Removed dynamic coloring to match reference image
+                                }
+                            ];
+                        })
+                    ]
+                },
+                layout: premiumLayout,
+                margin: [0, 0, 0, 15]
+            });
+
+            // Checklist Table
+             docContent.push({
+                table: {
+                    widths: ['*'],
+                    body: [[
+                        { text: 'AC DUCT + COIL CLEANING REPORT — ITEMS DONE', fillColor: themeBlue, color: 'white', bold: true, fontSize: 11, margin: [10, 6, 10, 6], characterSpacing: 0.5 }
+                    ]]
+                },
+                layout: 'noBorders',
+                margin: [0, 0, 0, 5]
+            });
+            docContent.push({
+                table: {
+                    widths: [15, '*'],
+                    body: state.checklist.map(item => [
+                        item.done 
+                            ? { svg: sanitizeSVG(`<svg width="12" height="12" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 12.5l5 5L20 6" fill="none" stroke="${themeGreen}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`), margin: [0, 2, 0, 0], alignment: 'center' }
+                            : { svg: sanitizeSVG(`<svg width="12" height="12" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 12h12" fill="none" stroke="${borderLight}" stroke-width="3" stroke-linecap="round"/></svg>`), margin: [0, 2, 0, 0], alignment: 'center' },
+                        {
+                            text: [
+                                { text: item.text + (item.done ? " " : ""), decoration: item.done ? null : 'lineThrough', color: item.done ? textDark : textMuted, fontSize: 9 },
+                                item.done ? { text: ' — Done', bold: true, color: textDark, fontSize: 9 } : {}
+                            ],
+                            margin: [0, 2, 0, 4]
+                        }
+                    ])
+                },
+                layout: 'noBorders', // Removed borders to match image
+                margin: [0, 0, 0, 15]
+            });
+
+            // --- PAGE 2+: PHOTOS ---
+            if (state.photos.length > 0) {
+                const PAIRS_PER_PAGE = 4; // Changed to 4 pairs per page
+                for (let i = 0; i < state.photos.length; i += PAIRS_PER_PAGE) {
+                    const chunk = state.photos.slice(i, i + PAIRS_PER_PAGE);
+
+                    // Add Page Break & Header
+                    docContent.push({
+                        pageBreak: 'before',
+                        columns: [
+                            { text: 'BEFORE', style: 'photoHeader', color: textDark, width: '*' },
+                            { text: 'AFTER', style: 'photoHeader', color: themeBlue, width: '*' }
+                        ],
+                        columnGap: 15,
+                        margin: [0, 0, 0, 5] // Tighter margins to fit 4 pairs
+                    });
+
+                    chunk.forEach(pair => {
+                        // Exact width to fit 2 columns perfectly with a 15px gap on an A4 page (Margin 40 = 515.28 width total)
+                        const imgWidth = 250;
+                        const imgHeight = 135;
+                        
+                        const emptyBox = (label) => ({ 
+                            table: { widths: [imgWidth], heights: [imgHeight - 10], body: [[ { text: label, alignment: 'center', margin: [0, 55, 0, 0], color: borderLight, fontSize: 10 } ]] }, 
+                            layout: { defaultBorder: true, hLineColor: ()=>borderLight, vLineColor: ()=>borderLight } 
+                        });
+
+                        const imgLeft = pair.before 
+                            ? { image: pair.before, width: safeNumber(imgWidth), height: safeNumber(imgHeight) }
+                            : emptyBox('No Before Image');
+
+                        const imgRight = pair.after 
+                            ? { image: pair.after, width: safeNumber(imgWidth), height: safeNumber(imgHeight) }
+                            : emptyBox('No After Image');
+
+                        // Component Subheader (Left-aligned)
+                        docContent.push({ text: pair.component || 'COMPONENT', style: 'photoSubHeader' });
+                        
+                        // Images mapped exactly to columns to perfectly align with the BEFORE/AFTER headers
+                        docContent.push({
+                            columns: [
+                                { width: '*', stack: [imgLeft], alignment: 'center' },
+                                { width: '*', stack: [imgRight], alignment: 'center' }
+                            ],
+                            columnGap: 15
+                        });
+                        
+                        // Caption
+                        docContent.push({ text: pair.caption || '', style: 'photoCaption', margin: [0, 4, 0, 10] }); // Tighter bottom margin
+                    });
+                }
+            }
+
+            // --- PAGE 3: TIPS ---
+            const tipData = [
+                { title: 'Rinse or replace filters monthly', text: 'In Dubai\'s dust, filters clog faster than the manufacturer assumes. A 60-second rinse keeps airflow strong and your power bill down.' },
+                { title: 'Run fans on Auto, not Constant', text: 'Continuous fan mode pulls humidity back into the room from a wet coil. Auto lets the coil drain between cycles and stops mould forming.' },
+                { title: 'Set the thermostat to 24–26 °C', text: 'Below 22 °C, the system runs longer with little extra comfort gain. 24–26 °C is the sweet spot for comfort, efficiency, and coil health.' },
+                { title: 'Keep vents and returns clear', text: 'Furniture, curtains, and rugs blocking vents force the system to work harder and create cold spots. Aim for 30 cm of clear space around every grille.' },
+                { title: 'Schedule a deep clean every 6 months', text: 'Filters catch the obvious; the duct interior, coil, and drain pan need a professional clean twice a year to stay sanitised.' },
+                { title: 'Watch for the warning signs', text: 'Musty smell, water dripping from a vent, ice on the coil, or a sudden electricity bill jump — these are the early signals. Call us before they turn into a breakdown.' },
+                { title: 'Don\'t run AC with windows open', text: 'Even a slightly open balcony door doubles the load on the system, drives up the bill, and pulls outdoor humidity onto the coil. Seal up while you cool.' },
+                { title: 'Service after a sandstorm', text: 'Heavy sand events coat the outdoor unit\'s fins and choke the indoor filter. A quick post-storm check restores efficiency and prevents long-term damage.' }
+            ];
+
+            docContent.push({ pageBreak: 'before', text: '', margin: [0,0,0,0] }); 
+            
+            docContent.push(createSectionHeader('CARING FOR YOUR AC SYSTEM — DUBAI CLEAN\'S MAINTENANCE TIPS'));
+            docContent.push({ text: 'A few simple habits between professional cleanings keep your AC running quietly, cooling efficiently, and your indoor air healthy.', margin: [0, 5, 0, 25], fontSize: 11, color: textDark });
+
+            for(let i = 0; i < tipData.length; i += 2) {
+                docContent.push({
+                    columns: [
+                        buildTipBox(i + 1, tipData[i]),
+                        buildTipBox(i + 2, tipData[i + 1])
+                    ],
+                    columnGap: 15,
+                    margin: [0, 0, 0, 15]
+                });
+            }
+
+            // Contact Banner
+            docContent.push({
+                table: {
+                    widths: ['*'],
+                    body: [[ { text: 'Need help with any of the above? Call 050 2763606 or visit www.dubaiclean.com — same-day service available across Dubai.', color: textDark, fontSize: 11, margin: [15, 12, 15, 12] } ]]
+                },
+                layout: { hLineWidth: ()=>0, vLineWidth: (i)=> i===0 ? 4 : 0, vLineColor: ()=>themeBlue, defaultBorder: false },
+                fillColor: '#f8fafc',
+                margin: [0, 20, 0, 0]
+            });
+
+            // --- PAGE 4: THANK YOU ---
+            docContent.push({
+                pageBreak: 'before',
+                stack: [
+                    { text: 'Thank you from the Dubai Clean team.', fontSize: 24, color: themeBlue, bold: true, alignment: 'center', margin: [0, 30, 0, 10] },
+                    { text: 'Cleaner air. Cooler rooms. Less power. Job done.', fontSize: 13, bold: true, color: textDark, alignment: 'center', margin: [0, 0, 0, 30] }
+                ]
+            });
+            
+            docContent.push({
+                table: {
+                    widths: ['*'],
+                    body: [[
+                        {
+                            columns: [
+                                {
+                                    width: '*',
+                                    stack: [
+                                        { text: 'Loved your service? Let Dubai know.', fontSize: 18, color: themeBlue, bold: true, margin: [0, 0, 0, 10] },
+                                        { text: 'Scan to leave a review on Google. It takes 30 seconds, helps other Dubai families find a team they can trust, and means the world to ours.', margin: [0, 0, 0, 15], fontSize: 11, lineHeight: 1.4, color: textDark },
+                                        {
+                                            columns: [
+                                                { width: '*', text: '' },
+                                                {
+                                                    width: 'auto',
+                                                    table: { body: [[ { text: 'Leave a review on Google', link: 'https://share.google/16mUMrcBq9Pxvy0f5', fillColor: themeBlue, color: 'white', bold: true, margin: [15, 6, 15, 6], fontSize: 11, alignment: 'center' } ]] },
+                                                    layout: 'noBorders'
+                                                },
+                                                { width: '*', text: '' }
+                                            ],
+                                            margin: [0, 0, 0, 10]
+                                        },
+                                        { text: 'share.google/16mUMrcBq9Pxvy0f5', link: 'https://share.google/16mUMrcBq9Pxvy0f5', color: themeBlue, fontSize: 10, bold: true }
+                                    ],
+                                    alignment: 'center', margin: [10, 15, 20, 10]
+                                },
+                                {
+                                    width: 150,
+                                    stack: [
+                                        { qr: 'https://share.google/16mUMrcBq9Pxvy0f5', fit: 100, alignment: 'center', margin: [0, 10, 0, 10] },
+                                        { svg: starSVG, alignment: 'center', margin: [0,0,0,5], width: 60 },
+                                        { text: '4.9 / 5 · 2,028 reviews on Google', fontSize: 8, color: textMuted, alignment: 'center', bold: true },
+                                        { text: 'Scan with your phone', fontSize: 7, color: textMuted, alignment: 'center', italics: true, margin: [0, 2, 0, 0] }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]]
+                },
+                layout: { ...premiumLayout, paddingTop: ()=>10, paddingBottom: ()=>10 },
+                margin: [0, 0, 0, 20]
+            });
+
+            // ISO & Trusted Section
+            docContent.push({
+                table: {
+                    widths: ['50%', '50%'],
+                    body: [[
+                        {
+                            stack: [
+                                { svg: isoBadgeSVG, width: 75, alignment: 'center', margin: [0, 0, 0, 8] },
+                                { text: 'ISO 9001:2015 CERTIFIED', fontSize: 10, color: textMuted, alignment: 'center', bold: true }
+                            ],
+                            margin: [0, 5, 0, 5]
+                        },
+                        {
+                            text: 'Trusted by Dubai residents since 2013',
+                            fontSize: 12,
+                            bold: true,
+                            color: textDark,
+                            alignment: 'center',
+                            margin: [0, 35, 0, 0] 
+                        }
+                    ]]
+                },
+                layout: {
+                    hLineWidth: () => 0,
+                    vLineWidth: (i) => (i === 1) ? 1 : 0,
+                    vLineColor: () => borderLight,
+                    paddingLeft: () => 20,
+                    paddingRight: () => 20
+                },
+                margin: [40, 0, 40, 15]
+            });
+
+            // Gray Callout Box
+            docContent.push({
+                table: {
+                    widths: ['*'],
+                    body: [[
+                        { text: 'Questions about your service? Reply to this report or call us at (04) 568 9636 / 050 2763606 — we respond within the same business day.', alignment: 'center', fontSize: 10, bold: true, color: textDark, margin: [20, 15, 20, 15] }
+                    ]]
+                },
+                layout: 'noBorders',
+                fillColor: '#f8fafc',
+                margin: [20, 0, 20, 20]
+            });
+
+            // Footer Space Buffer to ensure absolute footer doesn't overlap text
+            docContent.push({ text: '', margin: [0, 0, 0, 100] });
+
+            // Return Final Configuration
+            return {
+                pageSize: 'A4',
+                pageMargins: [40, 40, 40, 40],
+                background: function(currentPage, pageSize) {
+                    const pw = safeNumber(pageSize.width, 595.28);
+                    const ph = safeNumber(pageSize.height, 841.89);
+                    
+                    const bgElements = [];
+
+                    // HEADER - Strictly on 1st page
+                    if (currentPage === 1) {
+                        if (headerBase64) {
+                            // If a full header image is available, use it at the top
+                            bgElements.push({
+                                image: headerBase64,
+                                width: pw,
+                                absolutePosition: { x: 0, y: 0 }
+                            });
+                        } else {
+                            // Build the base geometric background fallback
+                            bgElements.push(
+                                // Header Absolute Positioning replacing SVG with native crash-proof Canvas Geometry
+                                {
+                                    absolutePosition: { x: safeNumber(0), y: safeNumber(0) },
+                                    canvas: [
+                                        { type: 'polyline', closePath: true, color: '#146d8f', points: [safePoint(pw*0.75, 0), safePoint(pw*0.65, 35), safePoint(pw*0.50, 35)] },
+                                        { type: 'polyline', closePath: true, color: themeBlue, points: [safePoint(pw*0.75, 0), safePoint(pw, 0), safePoint(pw, 35), safePoint(pw*0.65, 35)] },
+                                        { type: 'polyline', closePath: true, color: themeGreen, points: [safePoint(pw*0.50, 35), safePoint(pw, 35), safePoint(pw, 105), safePoint(pw*0.10, 105)] }
+                                    ]
+                                },
+                                { canvas: [{ type: 'rect', x: safeNumber(0), y: safeNumber(101), w: safeNumber(pw), h: safeNumber(4), color: themeGreen }], absolutePosition: { x: safeNumber(0), y: safeNumber(0) } },
+                                { text: 'SERVICE REPORT', color: 'white', fontSize: safeNumber(22), bold: true, absolutePosition: { x: safeNumber(pw - 230), y: safeNumber(65) }, characterSpacing: 1 }
+                            );
+
+                            // Inject the dynamically loaded logo, or use text fallback
+                            if (logoBase64) {
+                                // Support exact raw SVG string rendering or base64 raster fallback
+                                if (typeof logoBase64 === 'string' && logoBase64.trim().startsWith('<svg')) {
+                                    bgElements.push({
+                                        svg: sanitizeSVG(logoBase64),
+                                        width: 140,
+                                        absolutePosition: { x: safeNumber(40), y: safeNumber(20) }
+                                    });
+                                } else {
+                                    bgElements.push({
+                                        image: logoBase64,
+                                        width: 140, // Adjust this to scale your PNG logo perfectly
+                                        absolutePosition: { x: safeNumber(40), y: safeNumber(20) }
+                                    });
+                                }
+                            } else {
+                                bgElements.push(
+                                    {
+                                        text: [
+                                            { text: 'DUBAI', color: themeBlue, bold: true, fontSize: safeNumber(24), characterSpacing: -1 },
+                                            { text: 'CLEAN', color: themeGreen, bold: true, fontSize: safeNumber(24), characterSpacing: -1 }
+                                        ],
+                                        absolutePosition: { x: safeNumber(40), y: safeNumber(20) }
+                                    },
+                                    { text: 'YOUR TRUSTED PARTNER FOR TOTAL HOME WELLNESS', fontSize: safeNumber(7), bold: true, color: textDark, absolutePosition: { x: safeNumber(42), y: safeNumber(50) }, characterSpacing: 0.5 }
+                                );
+                            }
+                        }
+                    }
+
+                    // FOOTER - Strictly on 4th page at the bottom
+                    if (currentPage === 4) {
+                        if (footerBase64) {
+                            // Based on standard 1920x336 aspect ratio image uploaded,
+                            // scaled down to A4 width (595.28), height is approx 104.2
+                            bgElements.push({
+                                image: footerBase64,
+                                width: pw,
+                                absolutePosition: { x: 0, y: ph - 104.5 }
+                            });
+                        } else {
+                            // Fallback text if footer.png is missing from static folder
+                            bgElements.push({
+                                absolutePosition: { x: 0, y: ph - 40 },
+                                table: {
+                                    widths: ['*'],
+                                    body: [[{ text: 'DCS CLEANING SERVICES LLC | +971 56 100 4127 | WWW.DCSCLEANINGSERVICES.AE', alignment: 'center', color: textMuted, fontSize: 9, bold: true }]]
+                                },
+                                layout: 'noBorders'
+                            });
+                        }
+                    }
+
+                    return bgElements;
+                },
+                content: docContent,
+                styles: {
+                    mainTitle: { fontSize: 18, bold: true, decoration: 'underline', alignment: 'center', color: textDark }, // Slightly smaller title
+                    paragraph: { fontSize: 10, lineHeight: 1.4, color: textDark }, // Slightly smaller intro text
+                    th: { fontSize: 9, bold: true, color: textMuted, margin: [0, 2, 0, 2] }, // Match header style in image
+                    td: { fontSize: 9, margin: [0, 2, 0, 2], color: textDark }, // Match cell style in image
+                    photoHeader: { fontSize: 14, bold: true, alignment: 'center', margin: [0, 5, 0, 5], characterSpacing: 1 }, // Smaller and Bold
+                    photoSubHeader: { fontSize: 10, bold: true, color: themeBlue, alignment: 'left', margin: [0, 5, 0, 3], textTransform: 'uppercase', characterSpacing: 1 }, // Scaled down to 10px
+                    photoCaption: { fontSize: 10, color: textMuted, alignment: 'center', italics: true } // Scaled down to 10px
+                },
+                defaultStyle: { font: 'Roboto', fontSize: 11, color: textDark }
+            };
+
+            // Helper Functions
+            function createSectionHeader(text) {
+                return {
+                    table: { widths: ['*'], body: [[ { text: text, fillColor: themeBlue, color: 'white', bold: true, fontSize: 11, margin: [10, 6, 10, 6], characterSpacing: 0.5 } ]] },
+                    layout: 'noBorders', margin: [0, 15, 0, 5]
+                };
+            }
+
+            function buildTipBox(num, data) {
+                // PDFMake trick for rounded number badges using SVG
+                const circleNumber = `<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="11" fill="${themeBlue}" />
+                    <text x="12" y="16.5" font-family="sans-serif" font-size="13" font-weight="bold" fill="white" text-anchor="middle">${num}</text>
+                </svg>`;
+
+                return {
+                    table: {
+                        widths: ['*'],
+                        body: [[{
+                            columns: [
+                                {
+                                    width: 30,
+                                    stack: [{ svg: circleNumber, alignment: 'center' }],
+                                    margin: [0, 2, 0, 0]
+                                },
+                                {
+                                    width: '*',
+                                    stack: [
+                                        { text: data.title, fontSize: 11, bold: true, margin: [0, 0, 0, 6], color: textDark },
+                                        { text: data.text, fontSize: 9.5, color: textDark, margin: [0, 0, 0, 0], lineHeight: 1.3 }
+                                    ]
+                                }
+                            ]
+                        }]]
+                    },
+                    layout: {
+                        hLineWidth: () => 1,
+                        vLineWidth: () => 1,
+                        hLineColor: () => borderLight,
+                        vLineColor: () => borderLight,
+                        paddingLeft: () => 10,
+                        paddingRight: () => 10,
+                        paddingTop: () => 12,
+                        paddingBottom: () => 12,
+                    }
+                };
+            }
+        }
+    </script>
+</body>
+</html>
